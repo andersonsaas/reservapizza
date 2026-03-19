@@ -11,8 +11,8 @@ const supabaseAnonKey: string = (import.meta as any).env.VITE_SUPABASE_ANON_KEY 
 export const isConfigured = supabaseUrl !== '' && supabaseAnonKey !== '';
 
 export const supabase = createClient(
-  supabaseUrl, 
-  supabaseAnonKey
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-key-not-configured'
 );
 
 export const getMesas = async (): Promise<Mesa[]> => {
@@ -65,7 +65,10 @@ export const createReserva = async (reserva: { mesa_id: string; nome_cliente: st
     .from('reservas')
     .insert([reserva]);
     
-  if (error) throw error;
+  if (error) {
+    console.error("Insert reserva error:", error);
+    throw error;
+  }
   
   const today = new Date().toISOString().split('T')[0];
   if (reserva.data_reserva === today) {
