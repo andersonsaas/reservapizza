@@ -16,13 +16,6 @@ const TableMap: React.FC<TableMapProps> = ({ mesas, isSystemOpen, userRole, sele
   const [selectedMesa, setSelectedMesa] = useState<Mesa | null>(null);
 
   const handleTableAction = (mesa: Mesa) => {
-    const today = new Date().toISOString().split('T')[0];
-    const isToday = selectedDate === today;
-
-    if (!isSystemOpen && isToday && mesa.status === 'livre') {
-      toast.error('Sistema fechado. Apenas visualização disponível.');
-      return;
-    }
     setSelectedMesa(mesa);
   };
 
