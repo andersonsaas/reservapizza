@@ -5,8 +5,8 @@ import { Mesa, TableStatus, UserProfile, Reserva } from '../types';
 // ==========================================================
 // CONFIGURAÇÃO DO SUPABASE
 // ==========================================================
-const supabaseUrl: string = 'https://lnsximlxkmxoahwpedmo.supabase.co';
-const supabaseAnonKey: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxuc3hpbWx4a214b2Fod3BlZG1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODY3NTMsImV4cCI6MjA4NTk2Mjc1M30.lbaqMxA5gPOIsv304fN_EcynrrXmcht7uVo_outPE-g';
+const supabaseUrl: string = (import.meta as any).env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey: string = (import.meta as any).env.VITE_SUPABASE_ANON_KEY || '';
 
 export const isConfigured = supabaseUrl !== '' && supabaseAnonKey !== '';
 
