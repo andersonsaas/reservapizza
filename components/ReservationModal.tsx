@@ -61,8 +61,9 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ mesa, onClose, isSy
       await updateMesaStatus(mesa.id, 'ocupada');
       toast.success('Mesa ocupada!');
       onClose();
-    } catch (e) {
-      toast.error("Erro ao ocupar mesa.");
+    } catch (e: any) {
+      console.error("Catch form occupy:", e);
+      toast.error(e?.message || "Erro ao ocupar mesa. Verifique a coluna contato.");
     } finally {
       setLoading(false);
     }
@@ -84,8 +85,9 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ mesa, onClose, isSy
       });
       toast.success('Reserva confirmada!');
       onClose();
-    } catch (e) {
-      toast.error("Erro ao realizar reserva.");
+    } catch (e: any) {
+      console.error("Catch form booking:", e);
+      toast.error(e?.message || "Erro ao realizar reserva. Verifique a nova coluna contato.");
     } finally {
       setLoading(false);
     }

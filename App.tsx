@@ -6,7 +6,7 @@ import AuthForm from './components/AuthForm';
 import LoungeConfig from './components/LoungeConfig';
 import ProfileSettings from './components/ProfileSettings';
 import UserManagement from './components/UserManagement';
-import { UserProfile, Mesa, Reserva } from './types';
+import { UserProfile, Mesa, Reserva, TableStatus } from './types';
 import { Toaster, toast } from 'react-hot-toast';
 import { supabase, getMesas, getUserProfile, saveLoungeConfig, isConfigured, getReservasByDate, getSistemaAtivo, updateSistemaAtivo } from './services/supabaseService';
 
@@ -154,22 +154,34 @@ const App: React.FC = () => {
   };
 
   const displayMesas = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    // Get local date properly (YYYY-MM-DD) avoiding UTC offset issues
+    const localNow = new Date();
+    const today = localNow.getFullYear() + '-' + String(localNow.getMonth() + 1).padStart(2, '0') + '-' + String(localNow.getDate()).padStart(2, '0');
     const isToday = selectedDate === today;
 
     return mesas.map(mesa => {
+      // Find active reservation matching this explicitly selected date
       const reservaAtiva = [...reservas]
         .reverse()
         .find(r => r.mesa_id === mesa.id && r.status !== 'cancelada');
       
-      const derivedStatus = isToday ? mesa.status : (reservaAtiva ? 'reservada' : 'livre');
+      // Calculate real status
+      // A table is only 'ocupada' if it's actually occupied TODAY.
+      const isOcupadaHoje = isToday && mesa.status === 'ocupada';
+      
+      let derivedStatus: TableStatus = 'livre';
+      if (isOcupadaHoje) {
+        derivedStatus = 'ocupada';
+      } else if (reservaAtiva) {
+        derivedStatus = 'reservada';
+      }
 
       return {
         ...mesa,
         status: derivedStatus,
-        cliente_nome: reservaAtiva?.nome_cliente || undefined,
-        num_pessoas: reservaAtiva?.num_pessoas || undefined,
-        hora_reserva: reservaAtiva?.hora_inicio || undefined
+        cliente_nome: reservaAtiva ? reservaAtiva.nome_cliente : (isOcupadaHoje ? mesa.cliente_nome : undefined),
+        num_pessoas: reservaAtiva ? reservaAtiva.num_pessoas : (isOcupadaHoje ? mesa.num_pessoas : undefined),
+        hora_reserva: reservaAtiva ? reservaAtiva.hora_inicio : (isOcupadaHoje ? mesa.hora_reserva : undefined)
       } as Mesa;
     });
   }, [mesas, reservas, selectedDate]);
