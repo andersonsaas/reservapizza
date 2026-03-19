@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS public.reservas (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   mesa_id UUID REFERENCES public.mesas(id) ON DELETE CASCADE NOT NULL,
   nome_cliente TEXT NOT NULL,
+  contato TEXT,
   data_reserva DATE NOT NULL DEFAULT CURRENT_DATE,
   hora_inicio TIME NOT NULL,
   status TEXT DEFAULT 'ativa',

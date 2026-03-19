@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Mesa, TableStatus } from '../types';
-import { X, User, Clock, Check, CalendarDays, AlertTriangle, Users } from 'lucide-react';
+import { X, User, Clock, Check, CalendarDays, AlertTriangle, Users, Phone } from 'lucide-react';
 import { updateMesaStatus, createReserva } from '../services/supabaseService';
 import { toast } from 'react-hot-toast';
 
@@ -16,6 +16,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ mesa, onClose, isSy
   const [view, setView] = useState<'options' | 'booking' | 'quick-occupy'>('options');
   const [showConfirmRelease, setShowConfirmRelease] = useState(false);
   const [clientName, setClientName] = useState('');
+  const [contato, setContato] = useState('');
   const [numPessoas, setNumPessoas] = useState<string>(mesa.capacidade.toString());
   const [time, setTime] = useState(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
   const today = new Date().toISOString().split('T')[0];
@@ -52,6 +53,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ mesa, onClose, isSy
       await createReserva({
         mesa_id: mesa.id,
         nome_cliente: clientName.trim(),
+        contato: contato.trim(),
         num_pessoas: parseInt(numPessoas) || 1,
         data_reserva: today,
         hora_inicio: time
@@ -75,6 +77,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ mesa, onClose, isSy
       await createReserva({
         mesa_id: mesa.id,
         nome_cliente: clientName.trim(),
+        contato: contato.trim(),
         num_pessoas: parseInt(numPessoas) || 1,
         data_reserva: date,
         hora_inicio: time
@@ -231,8 +234,8 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ mesa, onClose, isSy
             </div>
           ) : view === 'quick-occupy' ? (
             <form onSubmit={handleQuickOccupy} className="space-y-6">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-2 space-y-2">
+              <div className="space-y-4">
+                <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-slate-500 ml-1 tracking-widest">Nome do Cliente</label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-500" size={18} />
@@ -247,18 +250,34 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ mesa, onClose, isSy
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 ml-1 tracking-widest">Pessoas</label>
-                  <div className="relative">
-                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500" size={16} />
-                    <input 
-                      type="number" 
-                      min="1"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-10 pr-2 text-white focus:ring-2 focus:ring-rose-500 outline-none font-bold text-center"
-                      value={numPessoas}
-                      onChange={(e) => setNumPessoas(e.target.value)}
-                      required
-                    />
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-2 space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1 tracking-widest">WhatsApp (Opcional)</label>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-500" size={18} />
+                      <input 
+                        type="tel"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-white focus:ring-2 focus:ring-rose-500 outline-none font-bold"
+                        placeholder="(00) 00000-0000"
+                        value={contato}
+                        onChange={(e) => setContato(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1 tracking-widest">Pessoas</label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500" size={16} />
+                      <input 
+                        type="number" 
+                        min="1"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-10 pr-2 text-white focus:ring-2 focus:ring-rose-500 outline-none font-bold text-center"
+                        value={numPessoas}
+                        onChange={(e) => setNumPessoas(e.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -271,8 +290,8 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ mesa, onClose, isSy
             </form>
           ) : (
             <form onSubmit={handleBooking} className="space-y-5">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-2 space-y-2">
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-slate-500 ml-1 tracking-widest">Nome do Cliente</label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-500" size={18} />
@@ -286,18 +305,35 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ mesa, onClose, isSy
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 ml-1 tracking-widest">Pessoas</label>
-                  <div className="relative">
-                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500" size={16} />
-                    <input 
-                      type="number" 
-                      min="1"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-10 pr-2 text-white focus:ring-2 focus:ring-amber-500 outline-none font-bold text-center"
-                      value={numPessoas}
-                      onChange={(e) => setNumPessoas(e.target.value)}
-                      required
-                    />
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-2 space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1 tracking-widest">WhatsApp / Contato</label>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-500" size={18} />
+                      <input 
+                        type="tel"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-white focus:ring-2 focus:ring-amber-500 outline-none font-bold"
+                        placeholder="(00) 00000-0000"
+                        value={contato}
+                        onChange={(e) => setContato(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1 tracking-widest">Pessoas</label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500" size={16} />
+                      <input 
+                        type="number" 
+                        min="1"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-10 pr-2 text-white focus:ring-2 focus:ring-amber-500 outline-none font-bold text-center"
+                        value={numPessoas}
+                        onChange={(e) => setNumPessoas(e.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

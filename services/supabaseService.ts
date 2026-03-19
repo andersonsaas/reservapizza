@@ -60,7 +60,7 @@ export const saveLoungeConfig = async (mesas: Mesa[]) => {
   if (error) throw error;
 };
 
-export const createReserva = async (reserva: { mesa_id: string; nome_cliente: string; num_pessoas: number; data_reserva: string; hora_inicio: string }) => {
+export const createReserva = async (reserva: { mesa_id: string; nome_cliente: string; contato?: string; num_pessoas: number; data_reserva: string; hora_inicio: string }) => {
   const { error } = await supabase
     .from('reservas')
     .insert([reserva]);

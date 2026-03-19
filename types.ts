@@ -16,6 +16,7 @@ export interface Reserva {
   id: string;
   mesa_id: string;
   nome_cliente: string;
+  contato?: string;
   num_pessoas: number; // Campo obrigatório para a reserva
   data_reserva: string;
   hora_inicio: string;
