@@ -63,13 +63,23 @@ export const createRestaurante = async (restaurante: {
   email?: string;
   cor_primaria?: string;
   cor_secundaria?: string;
+  ativo?: boolean;
 }): Promise<Restaurante> => {
+  const payload = {
+    nome: restaurante.nome,
+    slug: restaurante.slug,
+    endereco: restaurante.endereco,
+    telefone: restaurante.telefone,
+    email: restaurante.email,
+    cor_primaria: restaurante.cor_primaria,
+    cor_secundaria: restaurante.cor_secundaria,
+    ativo: restaurante.ativo ?? true,
+    criado_por: (await supabase.auth.getUser()).data.user?.id
+  };
+
   const { data, error } = await supabase
     .from('restaurantes')
-    .insert([{
-      ...restaurante,
-      criado_por: (await supabase.auth.getUser()).data.user?.id
-    }])
+    .insert([payload])
     .select()
     .single();
 

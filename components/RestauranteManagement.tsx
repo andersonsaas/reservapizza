@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Building2, Plus, Edit, Trash2, MapPin, Phone, Mail } from 'lucide-react';
 import { Restaurante } from '../types';
-import { createRestaurante, updateRestaurante, deleteRestaurante, getRestaurantes, setRestauranteAtivo } from '../services/supabaseService';
+import { createRestaurante, updateRestaurante, deleteRestaurante, getRestaurantes, setRestauranteAtivo, createRestauranteAdminUser } from '../services/supabaseService';
 import { toast } from 'react-hot-toast';
 
 interface RestauranteManagementProps {
@@ -25,7 +25,10 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
     email: '',
     ativo: true,
     cor_primaria: '#f59e0b',
-    cor_secundaria: '#374151'
+    cor_secundaria: '#374151',
+    admin_full_name: '',
+    admin_email: '',
+    admin_password: ''
   });
   const [loading, setLoading] = useState(false);
 
@@ -38,7 +41,10 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
       email: '',
       ativo: true,
       cor_primaria: '#f59e0b',
-      cor_secundaria: '#374151'
+      cor_secundaria: '#374151',
+      admin_full_name: '',
+      admin_email: '',
+      admin_password: ''
     });
     setEditingRestaurante(null);
     setShowForm(false);
@@ -54,7 +60,27 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
         await updateRestaurante(editingRestaurante.id, formData);
         toast.success('Restaurante atualizado!');
       } else {
-        await createRestaurante(formData);
+        const novoRestaurante = await createRestaurante({
+          nome: formData.nome,
+          slug: formData.slug,
+          endereco: formData.endereco,
+          telefone: formData.telefone,
+          email: formData.email,
+          cor_primaria: formData.cor_primaria,
+          cor_secundaria: formData.cor_secundaria,
+          ativo: formData.ativo
+        });
+
+        if (formData.admin_full_name.trim() && formData.admin_email.trim() && formData.admin_password.trim()) {
+          await createRestauranteAdminUser(
+            novoRestaurante.id,
+            formData.admin_full_name,
+            formData.admin_email,
+            formData.admin_password
+          );
+          toast.success('Usuário administrador do restaurante criado!');
+        }
+
         toast.success('Restaurante criado!');
       }
 
@@ -241,6 +267,41 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
                   <option value="ativo">Ativo</option>
                   <option value="inativo">Inativo</option>
                 </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-slate-400 font-bold text-sm">Gerente/Admin Restaurante (opcional)</label>
+                <input
+                  type="text"
+                  value={formData.admin_full_name}
+                  onChange={(e) => setFormData({...formData, admin_full_name: e.target.value})}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-4 text-white focus:ring-2 focus:ring-amber-500 outline-none font-bold"
+                  placeholder="Nome do gerente"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-slate-400 font-bold text-sm">Email do Gerente</label>
+                <input
+                  type="email"
+                  value={formData.admin_email}
+                  onChange={(e) => setFormData({...formData, admin_email: e.target.value})}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-4 text-white focus:ring-2 focus:ring-amber-500 outline-none font-bold"
+                  placeholder="admin@restaurante.com"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-slate-400 font-bold text-sm">Senha do Gerente</label>
+                <input
+                  type="password"
+                  value={formData.admin_password}
+                  onChange={(e) => setFormData({...formData, admin_password: e.target.value})}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-4 text-white focus:ring-2 focus:ring-amber-500 outline-none font-bold"
+                  placeholder="Senha segura"
+                />
               </div>
             </div>
 
