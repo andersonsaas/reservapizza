@@ -524,7 +524,7 @@ const App: React.FC = () => {
         ) : activeTab === 'users' ? (
           <UserManagement />
         ) : activeTab === 'restaurantes' ? (
-          <RestauranteManagement restaurantes={restaurantes} onRestaurantesUpdate={setRestaurantes} />
+          <RestauranteManagement restaurantes={restaurantes} onRestaurantesUpdate={setRestaurantes} userRole={user?.role} />
         ) : (
           <ProfileSettings user={user} onProfileUpdate={setUser} />
         )}

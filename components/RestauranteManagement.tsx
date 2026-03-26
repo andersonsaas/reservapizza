@@ -7,11 +7,13 @@ import { toast } from 'react-hot-toast';
 interface RestauranteManagementProps {
   restaurantes: Restaurante[];
   onRestaurantesUpdate: (restaurantes: Restaurante[]) => void;
+  userRole?: string;
 }
 
 const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
   restaurantes,
-  onRestaurantesUpdate
+  onRestaurantesUpdate,
+  userRole
 }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingRestaurante, setEditingRestaurante] = useState<Restaurante | null>(null);
@@ -99,6 +101,22 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
       toast.success('Restaurante excluído!');
     } catch (error: any) {
       toast.error(error.message || 'Erro ao excluir restaurante');
+    }
+  };
+
+  const handleToggleAtivo = async (restaurante: Restaurante) => {
+    if (userRole !== 'super_admin') {
+      toast.error('Apenas super administradores podem alterar o status dos restaurantes.');
+      return;
+    }
+
+    try {
+      await setRestauranteAtivo(restaurante.id, !restaurante.ativo);
+      onRestaurantesUpdate(restaurantes.map(r => r.id === restaurante.id ? {...r, ativo: !r.ativo} : r));
+      toast.success(`Restaurante ${restaurante.ativo ? 'desativado' : 'ativado'} com sucesso!`);
+    } catch (error: any) {
+      console.error('Erro ao alterar status do restaurante:', error);
+      toast.error(error?.message || 'Erro ao alterar status do restaurante.');
     }
   };
 
@@ -275,15 +293,7 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
                   <Trash2 size={16} />
                 </button>
                 <button
-                  onClick={async () => {
-                    try {
-                      await setRestauranteAtivo(restaurante.id, !restaurante.ativo);
-                      onRestaurantesUpdate(restaurantes.map(r => r.id === restaurante.id ? {...r, ativo: !r.ativo} : r));
-                      toast.success(`Restaurante ${restaurante.ativo ? 'desativado' : 'ativado'} com sucesso!`);
-                    } catch (error: any) {
-                      toast.error('Erro ao alterar status do restaurante.');
-                    }
-                  }}
+                  onClick={() => handleToggleAtivo(restaurante)}
                   className={`p-2 rounded-lg text-xs font-black ${restaurante.ativo ? 'bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white' : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500 hover:text-white'}`}
                 >
                   {restaurante.ativo ? 'Desativar' : 'Ativar'}
