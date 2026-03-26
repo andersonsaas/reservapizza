@@ -1,14 +1,15 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Crown, LayoutDashboard, LogOut, SlidersHorizontal, Users, ShieldAlert, Calendar, RefreshCw, UserCircle, Power, Ticket, MessageCircle } from 'lucide-react';
+import { Crown, LayoutDashboard, LogOut, SlidersHorizontal, Users, ShieldAlert, Calendar, RefreshCw, UserCircle, Power, Ticket, MessageCircle, Building2 } from 'lucide-react';
 import TableMap from './components/TableMap';
 import AuthForm from './components/AuthForm';
 import LoungeConfig from './components/LoungeConfig';
 import ProfileSettings from './components/ProfileSettings';
 import UserManagement from './components/UserManagement';
-import { UserProfile, Mesa, Reserva, TableStatus } from './types';
+import RestauranteManagement from './components/RestauranteManagement';
+import { UserProfile, Mesa, Reserva, TableStatus, Restaurante } from './types';
 import { Toaster, toast } from 'react-hot-toast';
-import { supabase, getMesas, getUserProfile, saveLoungeConfig, isConfigured, getReservasByDate, getSistemaAtivo, updateSistemaAtivo } from './services/supabaseService';
+import { supabase, getMesas, getUserProfile, saveLoungeConfig, isConfigured, getReservasByDate, getSistemaAtivo, updateSistemaAtivo, getRestaurantes, getRestauranteBySlug } from './services/supabaseService';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -16,17 +17,24 @@ const App: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [sistemaAtivo, setSistemaAtivo] = useState(false);
   const [togglingSistema, setTogglingSistema] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'config' | 'profile' | 'users'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'config' | 'profile' | 'users' | 'restaurantes'>('dashboard');
   const [mesas, setMesas] = useState<Mesa[]>([]);
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [restauranteSelecionado, setRestauranteSelecionado] = useState<Restaurante | null>(null);
+  const [restaurantes, setRestaurantes] = useState<Restaurante[]>([]);
+  const [showRestauranteSelector, setShowRestauranteSelector] = useState(false);
 
-  const fetchInitialData = async (date?: string) => {
+  const fetchInitialData = async (date?: string, restauranteId?: string) => {
     const targetDate = date || selectedDate;
+    const targetRestauranteId = restauranteId || restauranteSelecionado?.id;
+
+    if (!targetRestauranteId) return;
+
     try {
       const [mesasData, reservasData] = await Promise.all([
-        getMesas(),
-        getReservasByDate(targetDate)
+        getMesas(targetRestauranteId),
+        getReservasByDate(targetDate, targetRestauranteId)
       ]);
       setMesas(mesasData);
       setReservas(reservasData);
@@ -70,16 +78,38 @@ const App: React.FC = () => {
           }
         }
 
-        const profile = session ? await getUserProfile(session.user.id) : null;
-        if (profile && session) {
-          setUser({ ...profile, email: session.user.email });
+        if (session) {
+          const profile = await getUserProfile(session.user.id);
+          if (profile) {
+            setUser({ ...profile, email: session.user.email });
+
+            // Buscar restaurantes disponíveis
+            const restaurantesData = await getRestaurantes();
+            setRestaurantes(restaurantesData);
+
+            // Lógica de seleção de restaurante
+            if (profile.role === 'super_admin') {
+              // Super admin pode escolher qualquer restaurante ou gerenciar todos
+              setShowRestauranteSelector(true);
+            } else if (profile.restaurante_id) {
+              // Usuário tem restaurante atribuído
+              const restaurante = restaurantesData.find(r => r.id === profile.restaurante_id);
+              if (restaurante) {
+                setRestauranteSelecionado(restaurante);
+                // Busca status inicial do sistema
+                const ativo = await getSistemaAtivo(restaurante.id);
+                setSistemaAtivo(ativo);
+                await fetchInitialData(selectedDate, restaurante.id);
+              } else {
+                // Restaurante não encontrado, mostrar seletor
+                setShowRestauranteSelector(true);
+              }
+            } else {
+              // Usuário sem restaurante atribuído
+              setShowRestauranteSelector(true);
+            }
+          }
         }
-
-        // Busca status inicial do sistema
-        const ativo = await getSistemaAtivo();
-        setSistemaAtivo(ativo);
-
-        await fetchInitialData();
 
         // Escuta mudanças na autenticação
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -87,11 +117,26 @@ const App: React.FC = () => {
             const profile = await getUserProfile(session.user.id);
             if (profile) {
               setUser({ ...profile, email: session.user.email });
-              const ativo = await getSistemaAtivo();
-              setSistemaAtivo(ativo);
+              const restaurantesData = await getRestaurantes();
+              setRestaurantes(restaurantesData);
+
+              if (profile.role === 'super_admin') {
+                setShowRestauranteSelector(true);
+              } else if (profile.restaurante_id) {
+                const restaurante = restaurantesData.find(r => r.id === profile.restaurante_id);
+                if (restaurante) {
+                  setRestauranteSelecionado(restaurante);
+                  const ativo = await getSistemaAtivo(restaurante.id);
+                  setSistemaAtivo(ativo);
+                }
+              } else {
+                setShowRestauranteSelector(true);
+              }
             }
           } else if (event === 'SIGNED_OUT') {
             setUser(null);
+            setRestauranteSelecionado(null);
+            setShowRestauranteSelector(false);
           }
         });
         authSubscription = subscription;
@@ -101,19 +146,26 @@ const App: React.FC = () => {
           .on('postgres_changes', { 
             event: '*', 
             schema: 'public', 
-            table: 'configuracoes'
+            table: 'configuracoes_restaurante'
           }, (payload: any) => {
-            if (payload.new && payload.new.chave === 'sistema_ativo') {
-              setSistemaAtivo(payload.new.valor);
+            if (payload.new && payload.new.chave === 'sistema_ativo' && payload.new.restaurante_id === restauranteSelecionado?.id) {
+              setSistemaAtivo(payload.new.valor === 'true');
             }
           })
           .subscribe();
 
         dataChannel = supabase
           .channel('db-realtime-data')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'mesas' }, () => fetchInitialData())
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'reservas' }, () => fetchInitialData())
-          .subscribe();
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'mesas' }, (payload: any) => {
+            if (payload.new?.restaurante_id === restauranteSelecionado?.id || payload.old?.restaurante_id === restauranteSelecionado?.id) {
+              fetchInitialData();
+            }
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'reservas' }, (payload: any) => {
+            if (payload.new?.restaurante_id === restauranteSelecionado?.id || payload.old?.restaurante_id === restauranteSelecionado?.id) {
+              fetchInitialData();
+            }
+          })
 
       } catch (error: any) {
         console.error("Erro na inicialização:", error);
@@ -144,7 +196,20 @@ const App: React.FC = () => {
       if (configChannel) supabase.removeChannel(configChannel);
       if (dataChannel) supabase.removeChannel(dataChannel);
     };
-  }, [selectedDate]);
+  }, [selectedDate, restauranteSelecionado]);
+
+  const handleRestauranteSelect = async (restaurante: Restaurante | null) => {
+    setRestauranteSelecionado(restaurante);
+    setShowRestauranteSelector(false);
+
+    if (restaurante) {
+      // Buscar dados do restaurante selecionado
+      const ativo = await getSistemaAtivo(restaurante.id);
+      setSistemaAtivo(ativo);
+      await fetchInitialData(selectedDate, restaurante.id);
+      toast.success(`Restaurante ${restaurante.nome} selecionado!`);
+    }
+  };
 
   const handleManualRefresh = async () => {
     setRefreshing(true);
@@ -205,18 +270,26 @@ const App: React.FC = () => {
   };
 
   const handleUpdateLounge = async (newMesas: Mesa[]) => {
-    await saveLoungeConfig(newMesas);
-    setMesas(newMesas);
+    if (!restauranteSelecionado) return;
+
+    // Adicionar restaurante_id às mesas
+    const mesasComRestaurante = newMesas.map(mesa => ({
+      ...mesa,
+      restaurante_id: restauranteSelecionado.id
+    }));
+
+    await saveLoungeConfig(mesasComRestaurante);
+    setMesas(mesasComRestaurante);
     toast.success('Layout do salão atualizado!');
   };
 
   const handleToggleSistema = async () => {
-    if (togglingSistema) return;
+    if (togglingSistema || !restauranteSelecionado) return;
     
     setTogglingSistema(true);
     const novoValor = !sistemaAtivo;
     try {
-      await updateSistemaAtivo(novoValor);
+      await updateSistemaAtivo(restauranteSelecionado.id, novoValor);
       setSistemaAtivo(novoValor);
       toast.success(`Sistema ${novoValor ? 'Ativado' : 'Desativado'}!`);
     } catch (e: any) {
@@ -240,6 +313,57 @@ const App: React.FC = () => {
     </div>
   );
 
+  // Seletor de restaurante para usuários que precisam escolher
+  if (showRestauranteSelector) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <Toaster position="top-right" />
+        <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl p-8">
+          <div className="text-center mb-8">
+            <Building2 size={48} className="text-amber-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-black text-white uppercase italic mb-2">Selecionar Restaurante</h2>
+            <p className="text-slate-400">Escolha o restaurante que deseja gerenciar</p>
+          </div>
+
+          <div className="space-y-3">
+            {restaurantes.map((restaurante) => (
+              <button
+                key={restaurante.id}
+                onClick={() => handleRestauranteSelect(restaurante)}
+                className="w-full p-4 bg-slate-800 hover:bg-slate-700 rounded-2xl text-left transition-all"
+              >
+                <h3 className="font-bold text-white">{restaurante.nome}</h3>
+                {restaurante.endereco && (
+                  <p className="text-sm text-slate-400 mt-1">{restaurante.endereco}</p>
+                )}
+              </button>
+            ))}
+
+            {user.role === 'super_admin' && (
+              <>
+                <div className="border-t border-slate-700 my-4"></div>
+                <button
+                  onClick={() => setActiveTab('restaurantes')}
+                  className="w-full p-4 bg-amber-500/10 hover:bg-amber-500/20 rounded-2xl text-amber-500 font-bold transition-all"
+                >
+                  <Building2 size={20} className="inline mr-2" />
+                  Gerenciar Restaurantes
+                </button>
+              </>
+            )}
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="w-full mt-6 p-3 text-rose-500 hover:bg-rose-500/10 rounded-2xl text-sm font-bold uppercase tracking-widest transition-all"
+          >
+            Sair
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
       <Toaster position="top-right" />
@@ -252,6 +376,9 @@ const App: React.FC = () => {
           <div className="text-center">
             <h1 className="font-black text-lg tracking-tighter text-white uppercase italic">Rainha das</h1>
             <p className="font-bold text-amber-500 text-xs tracking-[0.3em] uppercase">Pizzas</p>
+            {restauranteSelecionado && (
+              <p className="text-slate-400 text-xs mt-1 font-medium">{restauranteSelecionado.nome}</p>
+            )}
           </div>
         </div>
         
@@ -267,12 +394,28 @@ const App: React.FC = () => {
           </button>
           
           {user.role === 'super_admin' && (
+            <button onClick={() => setActiveTab('restaurantes')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'restaurantes' ? 'bg-amber-500/10 text-amber-500' : 'text-slate-500 hover:text-slate-100'}`}>
+              <Building2 size={20} /> Restaurantes
+            </button>
+          )}
+          
+          {user.role === 'super_admin' && (
             <button onClick={() => setActiveTab('users')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'users' ? 'bg-amber-500/10 text-amber-500' : 'text-slate-500 hover:text-slate-100'}`}>
               <Users size={20} /> Usuários
             </button>
           )}
           
           <div className="pt-4 space-y-3">
+            {user.role === 'super_admin' && (
+              <button 
+                onClick={() => setShowRestauranteSelector(true)}
+                className="w-full flex items-center justify-center gap-3 px-4 py-4 rounded-xl font-black uppercase tracking-widest transition-all border-2 border-slate-600 text-slate-400 hover:bg-slate-600/10 shadow-lg"
+              >
+                <Building2 size={18} />
+                Trocar Restaurante
+              </button>
+            )}
+
             <a 
               href="https://n8nanderson.up.railway.app/webhook/qrcode-rainha" 
               target="_blank" 
@@ -360,12 +503,14 @@ const App: React.FC = () => {
                 </div>
               </div>
             </header>
-            <TableMap mesas={displayMesas} isSystemOpen={sistemaAtivo} userRole={user.role} selectedDate={selectedDate} />
+            <TableMap mesas={displayMesas} isSystemOpen={sistemaAtivo} userRole={user.role} selectedDate={selectedDate} restauranteId={restauranteSelecionado?.id || ''} />
           </>
         ) : activeTab === 'config' ? (
           <LoungeConfig mesas={mesas} onUpdate={handleUpdateLounge} />
         ) : activeTab === 'users' ? (
           <UserManagement />
+        ) : activeTab === 'restaurantes' ? (
+          <RestauranteManagement restaurantes={restaurantes} onRestaurantesUpdate={setRestaurantes} />
         ) : (
           <ProfileSettings user={user} onProfileUpdate={setUser} />
         )}

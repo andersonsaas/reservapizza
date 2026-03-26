@@ -10,9 +10,10 @@ interface ReservationModalProps {
   onClose: () => void;
   isSystemOpen: boolean;
   initialDate: string;
+  restauranteId: string;
 }
 
-const ReservationModal: React.FC<ReservationModalProps> = ({ mesa, onClose, isSystemOpen, initialDate }) => {
+const ReservationModal: React.FC<ReservationModalProps> = ({ mesa, onClose, isSystemOpen, initialDate, restauranteId }) => {
   const [view, setView] = useState<'options' | 'booking' | 'quick-occupy'>('options');
   const [showConfirmRelease, setShowConfirmRelease] = useState(false);
   const [clientName, setClientName] = useState('');
@@ -51,6 +52,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ mesa, onClose, isSy
     setLoading(true);
     try {
       await createReserva({
+        restaurante_id: restauranteId,
         mesa_id: mesa.id,
         nome_cliente: clientName.trim(),
         contato: contato.trim(),
@@ -76,6 +78,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ mesa, onClose, isSy
     setLoading(true);
     try {
       await createReserva({
+        restaurante_id: restauranteId,
         mesa_id: mesa.id,
         nome_cliente: clientName.trim(),
         contato: contato.trim(),

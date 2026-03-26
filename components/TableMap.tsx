@@ -10,9 +10,10 @@ interface TableMapProps {
   isSystemOpen: boolean;
   userRole: string;
   selectedDate: string;
+  restauranteId: string;
 }
 
-const TableMap: React.FC<TableMapProps> = ({ mesas, isSystemOpen, userRole, selectedDate }) => {
+const TableMap: React.FC<TableMapProps> = ({ mesas, isSystemOpen, userRole, selectedDate, restauranteId }) => {
   const [selectedMesa, setSelectedMesa] = useState<Mesa | null>(null);
 
   const handleTableAction = (mesa: Mesa) => {
@@ -43,6 +44,7 @@ const TableMap: React.FC<TableMapProps> = ({ mesas, isSystemOpen, userRole, sele
           onClose={() => setSelectedMesa(null)}
           isSystemOpen={isSystemOpen}
           initialDate={selectedDate}
+          restauranteId={restauranteId}
         />
       )}
     </div>
