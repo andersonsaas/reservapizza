@@ -56,20 +56,22 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
 
     setLoading(true);
     try {
+      const restaurantePayload = {
+        nome: formData.nome,
+        slug: formData.slug,
+        endereco: formData.endereco,
+        telefone: formData.telefone,
+        email: formData.email,
+        cor_primaria: formData.cor_primaria,
+        cor_secundaria: formData.cor_secundaria,
+        ativo: formData.ativo
+      };
+
       if (editingRestaurante) {
-        await updateRestaurante(editingRestaurante.id, formData);
+        await updateRestaurante(editingRestaurante.id, restaurantePayload);
         toast.success('Restaurante atualizado!');
       } else {
-        const novoRestaurante = await createRestaurante({
-          nome: formData.nome,
-          slug: formData.slug,
-          endereco: formData.endereco,
-          telefone: formData.telefone,
-          email: formData.email,
-          cor_primaria: formData.cor_primaria,
-          cor_secundaria: formData.cor_secundaria,
-          ativo: formData.ativo
-        });
+        const novoRestaurante = await createRestaurante(restaurantePayload);
 
         if (formData.admin_full_name.trim() && formData.admin_email.trim() && formData.admin_password.trim()) {
           await createRestauranteAdminUser(
