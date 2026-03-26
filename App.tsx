@@ -343,7 +343,7 @@ const App: React.FC = () => {
               <>
                 <div className="border-t border-slate-700 my-4"></div>
                 <button
-                  onClick={() => setActiveTab('restaurantes')}
+                  onClick={() => { setActiveTab('restaurantes'); setShowRestauranteSelector(false); }}
                   className="w-full p-4 bg-amber-500/10 hover:bg-amber-500/20 rounded-2xl text-amber-500 font-bold transition-all"
                 >
                   <Building2 size={20} className="inline mr-2" />
