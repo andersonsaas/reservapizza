@@ -306,25 +306,6 @@ export const assignUserToRestaurante = async (userId: string, restauranteId: str
 };
 
 // --- FUNÇÕES DE CONFIGURAÇÃO ---
+// (mantido apenas o modelo multi-tenant com restauranteId)
 
-export const getSistemaAtivo = async (): Promise<boolean> => {
-  const { data, error } = await supabase
-    .from('configuracoes')
-    .select('valor')
-    .eq('chave', 'sistema_ativo')
-    .single();
-    
-  if (error) {
-    console.error('Erro ao buscar configuração:', error);
-    return false;
-  }
-  return data.valor;
-};
-
-export const updateSistemaAtivo = async (valor: boolean) => {
-  const { error } = await supabase
-    .from('configuracoes')
-    .upsert({ chave: 'sistema_ativo', valor }, { onConflict: 'chave' });
-    
-  if (error) throw error;
-};
+// Use getSistemaAtivo(restauranteId) / updateSistemaAtivo(restauranteId, valor) acima.
