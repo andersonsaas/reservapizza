@@ -107,12 +107,20 @@ export const deleteRestaurante = async (id: string): Promise<void> => {
 };
 
 export const setRestauranteAtivo = async (id: string, ativo: boolean): Promise<void> => {
-  const { error } = await supabase
+  console.log('setRestauranteAtivo chamado:', { id, ativo });
+
+  const { data, error } = await supabase
     .from('restaurantes')
     .update({ ativo })
-    .eq('id', id);
+    .eq('id', id)
+    .select();
 
-  if (error) throw error;
+  console.log('Resultado setRestauranteAtivo:', { data, error });
+
+  if (error) {
+    console.error('Erro em setRestauranteAtivo:', error);
+    throw error;
+  }
 };
 
 export const createRestauranteAdminUser = async (

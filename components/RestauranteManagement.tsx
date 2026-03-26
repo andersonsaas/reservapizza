@@ -105,13 +105,17 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
   };
 
   const handleToggleAtivo = async (restaurante: Restaurante) => {
+    console.log('handleToggleAtivo chamado:', { restaurante, userRole });
+
     if (userRole !== 'super_admin') {
       toast.error('Apenas super administradores podem alterar o status dos restaurantes.');
       return;
     }
 
     try {
+      console.log('Chamando setRestauranteAtivo...');
       await setRestauranteAtivo(restaurante.id, !restaurante.ativo);
+      console.log('setRestauranteAtivo concluído, atualizando estado...');
       onRestaurantesUpdate(restaurantes.map(r => r.id === restaurante.id ? {...r, ativo: !r.ativo} : r));
       toast.success(`Restaurante ${restaurante.ativo ? 'desativado' : 'ativado'} com sucesso!`);
     } catch (error: any) {
