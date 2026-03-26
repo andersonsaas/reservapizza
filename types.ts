@@ -10,6 +10,7 @@ export interface Restaurante {
   telefone?: string;
   email?: string;
   logo_url?: string;
+  ativo: boolean;
   cor_primaria: string;
   cor_secundaria: string;
   criado_por?: string;

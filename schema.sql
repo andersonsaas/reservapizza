@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS public.restaurantes (
   logo_url TEXT,
   cor_primaria TEXT DEFAULT '#f59e0b',
   cor_secundaria TEXT DEFAULT '#374151',
+  ativo BOOLEAN DEFAULT true NOT NULL,
   criado_por UUID REFERENCES auth.users(id),
   criado_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
@@ -75,6 +76,7 @@ CREATE TABLE IF NOT EXISTS public.reservas (
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS restaurante_id UUID REFERENCES public.restaurantes(id) ON DELETE CASCADE;
 ALTER TABLE public.mesas ADD COLUMN IF NOT EXISTS restaurante_id UUID REFERENCES public.restaurantes(id) ON DELETE CASCADE;
 ALTER TABLE public.reservas ADD COLUMN IF NOT EXISTS restaurante_id UUID REFERENCES public.restaurantes(id) ON DELETE CASCADE;
+ALTER TABLE public.restaurantes ADD COLUMN IF NOT EXISTS ativo BOOLEAN DEFAULT true NOT NULL;
 
 -- Se existir restaurante default, atualize dados antigos (ajuste slug se necessário)
 UPDATE public.profiles SET restaurante_id = (SELECT id FROM public.restaurantes WHERE slug = 'rainha-das-pizzas' LIMIT 1) WHERE restaurante_id IS NULL AND role != 'super_admin';

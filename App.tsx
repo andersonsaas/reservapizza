@@ -84,7 +84,7 @@ const App: React.FC = () => {
             setUser({ ...profile, email: session.user.email });
 
             // Buscar restaurantes disponíveis
-            const restaurantesData = await getRestaurantes();
+            const restaurantesData = await getRestaurantes(profile.role !== 'super_admin');
             setRestaurantes(restaurantesData);
 
             // Lógica de seleção de restaurante
@@ -95,11 +95,16 @@ const App: React.FC = () => {
               // Usuário tem restaurante atribuído
               const restaurante = restaurantesData.find(r => r.id === profile.restaurante_id);
               if (restaurante) {
-                setRestauranteSelecionado(restaurante);
-                // Busca status inicial do sistema
-                const ativo = await getSistemaAtivo(restaurante.id);
-                setSistemaAtivo(ativo);
-                await fetchInitialData(selectedDate, restaurante.id);
+                if (!restaurante.ativo) {
+                  toast.error('Restaurante atribuído está inativo. Contate o super admin.');
+                  setShowRestauranteSelector(true);
+                } else {
+                  setRestauranteSelecionado(restaurante);
+                  // Busca status inicial do sistema
+                  const ativo = await getSistemaAtivo(restaurante.id);
+                  setSistemaAtivo(ativo);
+                  await fetchInitialData(selectedDate, restaurante.id);
+                }
               } else {
                 // Restaurante não encontrado, mostrar seletor
                 setShowRestauranteSelector(true);
@@ -117,7 +122,7 @@ const App: React.FC = () => {
             const profile = await getUserProfile(session.user.id);
             if (profile) {
               setUser({ ...profile, email: session.user.email });
-              const restaurantesData = await getRestaurantes();
+              const restaurantesData = await getRestaurantes(profile.role !== 'super_admin');
               setRestaurantes(restaurantesData);
 
               if (profile.role === 'super_admin') {
@@ -199,16 +204,25 @@ const App: React.FC = () => {
   }, [selectedDate, restauranteSelecionado]);
 
   const handleRestauranteSelect = async (restaurante: Restaurante | null) => {
+    if (!restaurante) {
+      setRestauranteSelecionado(null);
+      setShowRestauranteSelector(false);
+      return;
+    }
+
+    if (!restaurante.ativo) {
+      toast.error('Restaurante inativo. Escolha outro restaurante ou ative-o antes.');
+      return;
+    }
+
     setRestauranteSelecionado(restaurante);
     setShowRestauranteSelector(false);
 
-    if (restaurante) {
-      // Buscar dados do restaurante selecionado
-      const ativo = await getSistemaAtivo(restaurante.id);
-      setSistemaAtivo(ativo);
-      await fetchInitialData(selectedDate, restaurante.id);
-      toast.success(`Restaurante ${restaurante.nome} selecionado!`);
-    }
+    // Buscar dados do restaurante selecionado
+    const ativo = await getSistemaAtivo(restaurante.id);
+    setSistemaAtivo(ativo);
+    await fetchInitialData(selectedDate, restaurante.id);
+    toast.success(`Restaurante ${restaurante.nome} selecionado!`);
   };
 
   const handleManualRefresh = async () => {

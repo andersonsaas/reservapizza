@@ -19,12 +19,19 @@ export const supabase = createClient(
 // FUNÇÕES DE RESTAURANTES
 // ==========================================================
 
-export const getRestaurantes = async (): Promise<Restaurante[]> => {
+export const getRestaurantes = async (apenasAtivos = false): Promise<Restaurante[]> => {
   if (!isConfigured) return [];
-  const { data, error } = await supabase
+
+  let query = supabase
     .from('restaurantes')
     .select('*')
     .order('nome', { ascending: true });
+
+  if (apenasAtivos) {
+    query = query.eq('ativo', true);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Erro ao buscar restaurantes:', error);
@@ -97,6 +104,39 @@ export const deleteRestaurante = async (id: string): Promise<void> => {
     .eq('id', id);
 
   if (error) throw error;
+};
+
+export const setRestauranteAtivo = async (id: string, ativo: boolean): Promise<void> => {
+  const { error } = await supabase
+    .from('restaurantes')
+    .update({ ativo })
+    .eq('id', id);
+
+  if (error) throw error;
+};
+
+export const createRestauranteAdminUser = async (
+  restauranteId: string,
+  fullName: string,
+  email: string,
+  password: string
+): Promise<void> => {
+  const { data, error } = await supabase.auth.signUp({ email, password });
+
+  if (error) {
+    throw error;
+  }
+
+  const userId = (data?.user as any)?.id;
+  if (!userId) {
+    throw new Error('Falha ao criar usuário. Verifique o e-mail/senha e tente novamente.');
+  }
+
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .insert([{ id: userId, full_name: fullName, email, role: 'admin_restaurante', restaurante_id: restauranteId }]);
+
+  if (profileError) throw profileError;
 };
 
 // ==========================================================

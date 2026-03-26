@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Building2, Plus, Edit, Trash2, MapPin, Phone, Mail } from 'lucide-react';
 import { Restaurante } from '../types';
-import { createRestaurante, updateRestaurante, deleteRestaurante, getRestaurantes } from '../services/supabaseService';
+import { createRestaurante, updateRestaurante, deleteRestaurante, getRestaurantes, setRestauranteAtivo } from '../services/supabaseService';
 import { toast } from 'react-hot-toast';
 
 interface RestauranteManagementProps {
@@ -21,6 +21,7 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
     endereco: '',
     telefone: '',
     email: '',
+    ativo: true,
     cor_primaria: '#f59e0b',
     cor_secundaria: '#374151'
   });
@@ -33,6 +34,7 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
       endereco: '',
       telefone: '',
       email: '',
+      ativo: true,
       cor_primaria: '#f59e0b',
       cor_secundaria: '#374151'
     });
@@ -59,7 +61,12 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
       onRestaurantesUpdate(updatedRestaurantes);
       resetForm();
     } catch (error: any) {
-      const message = error?.message || error?.details || 'Erro ao salvar restaurante (verifique logs).';
+      const message =
+        (typeof error === 'string' && error) ||
+        error?.message ||
+        error?.details ||
+        (error?.error_description ? `${error.error_description}` : null) ||
+        'Erro ao salvar restaurante (verifique logs).';
       toast.error(message);
       console.error('Erro criando restaurante:', error);
     } finally {
@@ -75,6 +82,7 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
       endereco: restaurante.endereco || '',
       telefone: restaurante.telefone || '',
       email: restaurante.email || '',
+      ativo: restaurante.ativo ?? true,
       cor_primaria: restaurante.cor_primaria,
       cor_secundaria: restaurante.cor_secundaria
     });
@@ -200,6 +208,20 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
               </div>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-slate-400 font-bold text-sm">Status do Restaurante</label>
+                <select
+                  value={formData.ativo ? 'ativo' : 'inativo'}
+                  onChange={(e) => setFormData({...formData, ativo: e.target.value === 'ativo'})}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-4 text-white focus:ring-2 focus:ring-amber-500 outline-none font-bold"
+                >
+                  <option value="ativo">Ativo</option>
+                  <option value="inativo">Inativo</option>
+                </select>
+              </div>
+            </div>
+
             <div className="flex gap-4 pt-4">
               <button
                 type="button"
@@ -234,6 +256,9 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
                 <div>
                   <h3 className="font-black text-white text-lg">{restaurante.nome}</h3>
                   <p className="text-slate-400 text-sm">/{restaurante.slug}</p>
+                  <span className={`inline-flex items-center px-2 py-1 mt-1 text-xs font-black rounded-full ${restaurante.ativo ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>
+                    {restaurante.ativo ? 'Ativo' : 'Inativo'}
+                  </span>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -248,6 +273,20 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
                   className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
                 >
                   <Trash2 size={16} />
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await setRestauranteAtivo(restaurante.id, !restaurante.ativo);
+                      onRestaurantesUpdate(restaurantes.map(r => r.id === restaurante.id ? {...r, ativo: !r.ativo} : r));
+                      toast.success(`Restaurante ${restaurante.ativo ? 'desativado' : 'ativado'} com sucesso!`);
+                    } catch (error: any) {
+                      toast.error('Erro ao alterar status do restaurante.');
+                    }
+                  }}
+                  className={`p-2 rounded-lg text-xs font-black ${restaurante.ativo ? 'bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white' : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500 hover:text-white'}`}
+                >
+                  {restaurante.ativo ? 'Desativar' : 'Ativar'}
                 </button>
               </div>
             </div>

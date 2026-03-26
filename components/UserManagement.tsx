@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Shield, ShieldAlert, RefreshCw, Mail, UserCheck, UserX, Building2, ChevronDown } from 'lucide-react';
 import { UserProfile, Restaurante } from '../types';
-import { getAllProfiles, updateUserRole, assignUserToRestaurante, getRestaurantes } from '../services/supabaseService';
+import { getAllProfiles, updateUserRole, assignUserToRestaurante, getRestaurantes, createRestauranteAdminUser } from '../services/supabaseService';
 import { toast } from 'react-hot-toast';
 
 const UserManagement: React.FC = () => {
@@ -10,6 +10,13 @@ const UserManagement: React.FC = () => {
   const [restaurantes, setRestaurantes] = useState<Restaurante[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [novoAdmin, setNovoAdmin] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    restaurante_id: ''
+  });
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -65,6 +72,34 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const handleCreateAdminUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!novoAdmin.email.trim() || !novoAdmin.password.trim() || !novoAdmin.fullName.trim() || !novoAdmin.restaurante_id) {
+      toast.error('Preencha todos os dados do usuário e selecione um restaurante.');
+      return;
+    }
+
+    setCreatingAdmin(true);
+    try {
+      await createRestauranteAdminUser(
+        novoAdmin.restaurante_id,
+        novoAdmin.fullName,
+        novoAdmin.email,
+        novoAdmin.password
+      );
+      toast.success('Usuário de restaurante criado com sucesso!');
+      setNovoAdmin({ fullName: '', email: '', password: '', restaurante_id: '' });
+      fetchData();
+    } catch (error: any) {
+      console.error('Erro ao criar usuário de restaurante:', error);
+      toast.error(error?.message || 'Erro ao criar usuário de restaurante.');
+    } finally {
+      setCreatingAdmin(false);
+    }
+  };
+
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -89,6 +124,55 @@ const UserManagement: React.FC = () => {
           <span className="text-xs font-black uppercase tracking-widest">Atualizar</span>
         </button>
       </header>
+
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+        <h3 className="text-xl font-black text-white uppercase tracking-tighter">Criar usuário de restaurante</h3>
+        <form onSubmit={handleCreateAdminUser} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <input
+            type="text"
+            value={novoAdmin.fullName}
+            onChange={(e) => setNovoAdmin({ ...novoAdmin, fullName: e.target.value })}
+            placeholder="Nome completo"
+            className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white"
+            required
+          />
+          <input
+            type="email"
+            value={novoAdmin.email}
+            onChange={(e) => setNovoAdmin({ ...novoAdmin, email: e.target.value })}
+            placeholder="E-mail"
+            className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white"
+            required
+          />
+          <input
+            type="password"
+            value={novoAdmin.password}
+            onChange={(e) => setNovoAdmin({ ...novoAdmin, password: e.target.value })}
+            placeholder="Senha"
+            className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white"
+            required
+          />
+          <select
+            value={novoAdmin.restaurante_id}
+            onChange={(e) => setNovoAdmin({ ...novoAdmin, restaurante_id: e.target.value })}
+            className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white"
+            required
+          >
+            <option value="">Escolha restaurante</option>
+            {restaurantes.filter(r => r.ativo).map(r => (
+              <option key={r.id} value={r.id}>{r.nome}</option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            disabled={creatingAdmin}
+            className="col-span-1 md:col-span-4 bg-amber-500 hover:bg-amber-400 text-slate-900 font-black px-4 py-3 rounded-xl"
+          >
+            {creatingAdmin ? 'Criando...' : 'Criar usuário administrador'}
+          </button>
+        </form>
+      </div>
+
 
       <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
