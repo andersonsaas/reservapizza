@@ -59,7 +59,9 @@ const RestauranteManagement: React.FC<RestauranteManagementProps> = ({
       onRestaurantesUpdate(updatedRestaurantes);
       resetForm();
     } catch (error: any) {
-      toast.error(error.message || 'Erro ao salvar restaurante');
+      const message = error?.message || error?.details || 'Erro ao salvar restaurante (verifique logs).';
+      toast.error(message);
+      console.error('Erro criando restaurante:', error);
     } finally {
       setLoading(false);
     }

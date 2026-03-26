@@ -66,7 +66,15 @@ export const createRestaurante = async (restaurante: {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    const msg = (error as any).message || (error as any).details || 'Erro desconhecido';
+    if (msg.includes("Could not find table 'public.restaurantes'")) {
+      throw new Error(
+        "Tabela 'public.restaurantes' não encontrada. Execute o script de migração (schema.sql) no Supabase e atualize o banco."
+      );
+    }
+    throw new Error(msg);
+  }
   return data as Restaurante;
 };
 
